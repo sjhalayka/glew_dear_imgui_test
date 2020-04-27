@@ -36,6 +36,11 @@ using namespace std;
 #endif
 
 
+
+char eq_char[100] = "Z = Z*Z + C";
+
+
+
 bool lmb_down = false;
 bool mmb_down = false;
 bool rmb_down = false;
@@ -63,8 +68,6 @@ atomic_bool thread_is_running = false;
 atomic_bool vertex_data_refreshed = false;
 vector<string> string_log;
 mutex thread_mutex;
-
-bool is_amd_gpu = false;
 
 bool generate_button = true;
 unsigned int triangle_buffer = 0;
@@ -190,115 +193,6 @@ bool load_shaders()
 
 
 
-class monochrome_image
-{
-public:
-	size_t width;
-	size_t height;
-	vector<unsigned char> pixel_data;
-};
-
-vector<monochrome_image> mimgs;
-
-const size_t num_chars = 256;
-const size_t image_width = 256;
-const size_t image_height = 256;
-const size_t char_width = 16;
-const size_t char_height = 16;
-const size_t num_chars_wide = image_width / char_width;
-const size_t num_chars_high = image_height / char_height;
-
-
-
-
-void print_char(vector<unsigned char>& fbpixels, const size_t fb_width, const size_t fb_height, const size_t char_x_pos, const size_t char_y_pos, const unsigned char c, const RGB& text_colour)
-{
-	for (size_t i = 0; i < mimgs[c].width; i++)
-	{
-		for (size_t j = 0; j < mimgs[c].height; j++)
-		{
-			size_t y = mimgs[c].height - j;
-
-			size_t fb_x = char_x_pos + i;
-			size_t fb_y = fb_height - char_y_pos + y;
-
-			// If out of bounds, skip this pixel
-			if (fb_x >= fb_width || fb_y >= fb_height)
-				continue;
-
-			size_t fb_index = 4 * (fb_y * fb_width + fb_x);
-			size_t img_index = j * mimgs[c].width + i;
-
-			RGB background_colour;
-			background_colour.r = fbpixels[fb_index + 0];
-			background_colour.g = fbpixels[fb_index + 1];
-			background_colour.b = fbpixels[fb_index + 2];
-
-			const unsigned char alpha = mimgs[c].pixel_data[img_index];
-			const float alpha_float = alpha / 255.0f;
-
-			RGB target_colour;
-			target_colour.r = static_cast<unsigned char>(alpha_float * double(text_colour.r - background_colour.r) + background_colour.r);
-			target_colour.g = static_cast<unsigned char>(alpha_float * double(text_colour.g - background_colour.g) + background_colour.g);
-			target_colour.b = static_cast<unsigned char>(alpha_float * double(text_colour.b - background_colour.b) + background_colour.b);
-
-			fbpixels[fb_index + 0] = target_colour.r;
-			fbpixels[fb_index + 1] = target_colour.g;
-			fbpixels[fb_index + 2] = target_colour.b;
-			fbpixels[fb_index + 3] = 255;
-		}
-	}
-}
-
-void print_sentence(vector<unsigned char>& fbpixels, const size_t fb_width, const size_t fb_height, size_t char_x_pos, const size_t char_y_pos, const string s, const RGB& text_colour)
-{
-	for (size_t i = 0; i < s.size(); i++)
-	{
-		print_char(fbpixels, fb_width, fb_height, char_x_pos, char_y_pos, s[i], text_colour);
-
-		size_t char_width = mimgs[s[i]].width;
-
-		char_x_pos += char_width + 2;
-	}
-}
-
-
-bool is_all_zeroes(size_t width, size_t height, const vector<unsigned char>& pixel_data)
-{
-	bool all_zeroes = true;
-
-	for (size_t i = 0; i < width * height; i++)
-	{
-		if (pixel_data[i] != 0)
-		{
-			all_zeroes = false;
-			break;
-		}
-	}
-
-	return all_zeroes;
-}
-
-bool is_column_all_zeroes(size_t column, size_t width, size_t height, const vector<unsigned char>& pixel_data)
-{
-	bool all_zeroes = true;
-
-	for (size_t y = 0; y < height; y++)
-	{
-		size_t index = y * width + column;
-
-		if (pixel_data[index] != 0)
-		{
-			all_zeroes = false;
-			break;
-		}
-	}
-
-	return all_zeroes;
-}
-
-
-
 bool compile_and_link_compute_shader(const char* const file_name, GLuint& program)
 {
 	// Read in compute shader contents
@@ -311,9 +205,9 @@ bool compile_and_link_compute_shader(const char* const file_name, GLuint& progra
 		oss.clear();
 		oss.str("");
 		oss << "Could not open compute shader source file " << file_name;
-		thread_mutex.lock();
+		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		thread_mutex.unlock();
+		//thread_mutex.unlock();
 
 		return false;
 	}
@@ -402,9 +296,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Triangle count: " << triangles.size();
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	if (0 == triangles.size())
 		return false;
@@ -432,9 +326,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Generating normal/vertex/attribute buffer";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	// Enough bytes for twelve 4-byte floats plus one 2-byte integer, per triangle.
 	const size_t data_size = (12 * sizeof(float) + sizeof(short unsigned int)) * num_triangles;
@@ -484,9 +378,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Writing " << data_size / 1048576.0 << " MB of data to STL file: " << file_name;
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	if (false == stop)
 		out.write(reinterpret_cast<const char*>(&buffer[0]), data_size);
@@ -494,9 +388,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Done writing out.stl";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	out.close();
 
@@ -519,9 +413,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Welding vertices";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	// Insert unique vertices into set.
 	set<vertex_3_with_index> vertex_set;
@@ -539,17 +433,17 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Vertices: " << vertex_set.size();
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 
 	oss.clear();
 	oss.str("");
 	oss << "Generating vertex indices";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 
 	// Add indices to the vertices.
@@ -577,9 +471,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Assigning vertex indices to triangles";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 
 	// Find the three vertices for each triangle, by index.
@@ -605,9 +499,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Calculating normals";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	vertices_with_face_normals.resize(v.size());
 
@@ -636,9 +530,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Generating final index/vertex data";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	for (size_t i5 = 0; i5 < v.size(); i5++)
 	{
@@ -662,9 +556,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Done";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 }
 
 
@@ -694,9 +588,9 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 		oss.clear();
 		oss.str("");
 		oss << "Equation error: " << error_string;
-		thread_mutex.lock();
+		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		thread_mutex.unlock();
+		//thread_mutex.unlock();
 		thread_is_running = false;
 		return;
 	}
@@ -767,9 +661,9 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 		oss.clear();
 		oss.str("");
 		oss << "Calculating triangles from xy-plane pair " << z << " of " << p.resolution - 1;
-		thread_mutex.lock();
+		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		thread_mutex.unlock();
+		//thread_mutex.unlock();
 
 		for (size_t x = 0; x < p.resolution; x++, Z.x += step_size_x)
 		{
@@ -837,25 +731,31 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 }
 
 
+GLFWwindow* window2;
 
 void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_parser eqparser, quaternion C, vector<triangle>& triangles, vector<vertex_3_with_normal>& vertices_with_face_normals)
 {
+	cout << "entering gpu thread" << endl;
+
 	thread_is_running = true;
 
 	triangles.clear();
 	vertices_with_face_normals.clear();
 
-	//glutInitDisplayMode(GLUT_RGB);
-	//glutInitWindowSize(glutGet(GLUT_SCREEN_WIDTH), 1);
-	//glutInitWindowPosition(0, 0);
-	//win_id2 = glutCreateWindow("Julia 4D 3 GPU acceleration window");
-	//glutDisplayFunc(display_func2);
+
+	cout << "Setting context" << endl;
+
+	glfwMakeContextCurrent(window2);
 
 	GLuint compute_shader_program = 0;
 	GLuint tex_output = 0;
 	GLuint tex_input = 0;
 
+	cout << "linking and compiling" << endl;
+
 	compile_and_link_compute_shader("julia.cs.glsl", compute_shader_program);
+
+	cout << "Generating textures" << endl;
 
 	glGenTextures(1, &tex_output);
 	glActiveTexture(GL_TEXTURE0);
@@ -878,6 +778,9 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 
 
 	// Set up quaternion Julia set parameters
+
+	cout << "Calculating" << endl;
+
 
 	// Set up grid parameters
 	const float step_size_x = (p.x_max - p.x_min) / (p.resolution - 1);
@@ -917,7 +820,6 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 					glDeleteTextures(1, &tex_output);
 					glDeleteTextures(1, &tex_input);
 					glDeleteProgram(compute_shader_program);
-					//glutDestroyWindow(win_id2);
 					return;
 				}
 
@@ -974,7 +876,6 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 					glDeleteTextures(1, &tex_output);
 					glDeleteTextures(1, &tex_input);
 					glDeleteProgram(compute_shader_program);
-					//glutDestroyWindow(win_id2);
 					return;
 				}
 
@@ -1010,9 +911,9 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 			oss.clear();
 			oss.str("");
 			oss << "Calculating triangles from xy-plane pair " << z << " of " << p.resolution - 1;
-			thread_mutex.lock();
+			//thread_mutex.lock();
 			log_system.add_string_to_contents(oss.str());
-			thread_mutex.unlock();
+			//thread_mutex.unlock();
 
 			// Calculate triangles for the xy-planes corresponding to z - 1 and z by marching cubes.
 			tesselate_adjacent_xy_plane_pair(stop,
@@ -1031,7 +932,6 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 				glDeleteTextures(1, &tex_output);
 				glDeleteTextures(1, &tex_input);
 				glDeleteProgram(compute_shader_program);
-				//glutDestroyWindow(win_id2);
 				return;
 			}
 		}
@@ -1049,7 +949,7 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 	glDeleteTextures(1, &tex_output);
 	glDeleteTextures(1, &tex_input);
 	glDeleteProgram(compute_shader_program);
-	//glutDestroyWindow(win_id2);
+
 	return;
 }
 
@@ -1062,7 +962,7 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 
 bool obtain_control_contents(fractal_set_parameters& p)
 {
-	p.equation_text = "Z = sin(Z) + C*sin(Z)";
+//	p.equation_text = "";
 	p.use_pedestal = true;
 	p.pedestal_y_start = 0.0f;
 	p.pedestal_y_end = 0.15f;
@@ -1077,7 +977,7 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	p.x_min = p.y_min = p.z_min = -1.5f;
 	p.x_max = p.y_max = p.z_max = 1.5f;
 
-	//ostringstream oss;
+	ostringstream oss;
 
 	//if (p.randomize_c = randomize_c_checkbox->get_int_val())
 	//{
@@ -1120,19 +1020,19 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//}
 
 
-	//p.equation_text = equation_edittext->text;
+	p.equation_text = eq_char;
 
-	//if (p.equation_text == "")
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "blank equation text";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	if (p.equation_text == "")
+	{
+		oss.clear();
+		oss.str("");
+		oss << "blank equation text";
+		//thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		//thread_mutex.unlock();
 
-	//	return false;
-	//}
+		return false;
+	}
 
 	//p.randomize_c = randomize_c_checkbox->get_int_val();
 	//p.use_pedestal = use_pedestal_checkbox->get_int_val();
@@ -1146,9 +1046,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y start is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1165,9 +1065,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y end is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1182,9 +1082,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y start must be between 0 and 1";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1194,9 +1094,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y end must be between 0 and 1";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1206,9 +1106,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "Y start must be smaller than y_end";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1223,9 +1123,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.x  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1242,9 +1142,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.y  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1261,9 +1161,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.z  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1280,9 +1180,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.w  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1299,9 +1199,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x min  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1318,9 +1218,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y min  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1337,9 +1237,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z min  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1359,9 +1259,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x max  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1378,9 +1278,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y max  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1397,9 +1297,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z max  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1414,9 +1314,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x min must be less than x max";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1426,9 +1326,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y min must be less than y max";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1438,9 +1338,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z min must be less than z max";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1452,9 +1352,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z.w  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1472,9 +1372,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "infinity  is not a real number";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1492,9 +1392,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "max iterations is not an unsigned int";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1511,9 +1411,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "resolution is not an unsigned int";
-	//	thread_mutex.lock();
+	//	//thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
+	//	//thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1527,9 +1427,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//		oss.clear();
 	//		oss.str("");
 	//		oss << "resolution must be greater than or equal to 3";
-	//		thread_mutex.lock();
+	//		//thread_mutex.lock();
 	//		log_system.add_string_to_contents(oss.str());
-	//		thread_mutex.unlock();
+	//		//thread_mutex.unlock();
 
 	//		return false;
 	//	}
@@ -1617,9 +1517,9 @@ void generate_cancel_button_func(void)
         oss.clear();
         oss.str("");
         oss << "Aborting";
-        thread_mutex.lock();
+        //thread_mutex.lock();
         log_system.add_string_to_contents(oss.str());
-        thread_mutex.unlock();
+        //thread_mutex.unlock();
 
         stop = true;
         vertex_data_refreshed = false;
@@ -1636,7 +1536,6 @@ void generate_cancel_button_func(void)
         }
 
         generate_button = true;
-        //generate_mesh_button->set_name(const_cast<char*>("Generate mesh"));
     }
     else
     {
@@ -1649,9 +1548,9 @@ void generate_cancel_button_func(void)
             oss.clear();
             oss.str("");
             oss << "Aborting";
-            thread_mutex.lock();
+            //thread_mutex.lock();
             log_system.add_string_to_contents(oss.str());
-            thread_mutex.unlock();
+            //thread_mutex.unlock();
 
             return;
         }
@@ -1659,31 +1558,20 @@ void generate_cancel_button_func(void)
         stop = false;
         vertex_data_refreshed = false;
 
-        if (gen_thread != 0)
-        {
-            stop = true;
-            gen_thread->join();
-
-            delete gen_thread;
-            gen_thread = 0;
-            stop = false;
-        }
-
-        if (0)//gpu_acceleration_checkbox->get_int_val())
+        if (1)//gpu_acceleration_checkbox->get_int_val())
         {
             GLint global_workgroup_count[2];
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &global_workgroup_count[0]);
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &global_workgroup_count[1]);
-
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &global_workgroup_count[0]);     
+			glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &global_workgroup_count[1]);
             ostringstream oss;
 
             if (p.resolution > global_workgroup_count[0])
             {
-                //oss.clear();
-                //oss.str("");
-                //oss << "Texture width " << p.resolution << " is larger than max " << global_workgroup_count[0];
+                oss.clear();
+                oss.str("");
+                oss << "Texture width " << p.resolution << " is larger than max " << global_workgroup_count[0];
                 //thread_mutex.lock();
-                //log_system.add_string_to_contents(oss.str());
+                log_system.add_string_to_contents(oss.str());
                 //thread_mutex.unlock();
 
                 return;
@@ -1691,12 +1579,12 @@ void generate_cancel_button_func(void)
 
             if (p.resolution > global_workgroup_count[1])
             {
-                //oss.clear();
-                //oss.str("");
-                //oss << "Texture height " << p.resolution << " is larger than max " << global_workgroup_count[1];
+                oss.clear();
+                oss.str("");
+                oss << "Texture height " << p.resolution << " is larger than max " << global_workgroup_count[1];
                 //thread_mutex.lock();
-                //log_system.add_string_to_contents(oss.str());
-                //thread_mutex.unlock();
+                log_system.add_string_to_contents(oss.str());
+				//thread_mutex.unlock();
 
                 return;
             }
@@ -1707,11 +1595,11 @@ void generate_cancel_button_func(void)
 
             if (false == eqparser.setup(p.equation_text, error_string, C))
             {
-                //oss.clear();
-                //oss.str("");
-                //oss << "Equation error: " << error_string;
+                oss.clear();
+                oss.str("");
+                oss << "Equation error: " << error_string;
                 //thread_mutex.lock();
-                //log_system.add_string_to_contents(oss.str());
+                log_system.add_string_to_contents(oss.str());
                 //thread_mutex.unlock();
 
                 return;
@@ -1731,7 +1619,6 @@ void generate_cancel_button_func(void)
         }
 
         generate_button = false;
-       // generate_mesh_button->set_name(const_cast<char*>("Cancel"));
 
         start_time = std::chrono::high_resolution_clock::now();
     }
@@ -2080,9 +1967,9 @@ void refresh_vertex_data(void)
 	oss.clear();
 	oss.str("");
 	oss << "Refreshing vertex data";
-	thread_mutex.lock();
+	//thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	thread_mutex.unlock();
+	//thread_mutex.unlock();
 
 	//int do_rainbow = rainbow_colouring_checkbox->get_int_val();
 
@@ -2096,18 +1983,18 @@ void refresh_vertex_data(void)
 		oss.clear();
 		oss.str("");
 		oss << "Cancelled refreshing vertex data";
-		thread_mutex.lock();
+		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		thread_mutex.unlock();
+		//thread_mutex.unlock();
 	}
 	else
 	{
 		oss.clear();
 		oss.str("");
 		oss << "Done refreshing vertex data";
-		thread_mutex.lock();
+		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		thread_mutex.unlock();
+		//thread_mutex.unlock();
 	}
 }
 
@@ -2127,7 +2014,7 @@ int main(int, char**)
     // Decide GL+GLSL versions
 
     // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 430";
+    const char* glsl_version = "#version 430 core";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
@@ -2139,7 +2026,11 @@ int main(int, char**)
     if (window == NULL)
         return 1;
     glfwMakeContextCurrent(window);
-    // glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1); // Enable vsync
+
+	cout << "Crreating window" << endl;
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	window2 = glfwCreateWindow(1, 1, "Julia 4D 3 Multithreaded", NULL, NULL);
 
     bool err = glewInit() != GLEW_OK;
 
@@ -2154,116 +2045,7 @@ int main(int, char**)
         return 1;
     }
 
-    BMP font;
-
-    if (false == font.load("font.bmp"))
-    {
-        cout << "could not load font.bmp" << endl;
-        return false;
-    }
-
-    size_t char_index = 0;
-
-    vector< vector<GLubyte> > char_data;
-    vector<unsigned char> char_template(char_width * char_height);
-    char_data.resize(num_chars, char_template);
-
-    for (size_t i = 0; i < num_chars_wide; i++)
-    {
-        for (size_t j = 0; j < num_chars_high; j++)
-        {
-            size_t left = i * char_width;
-            size_t right = left + char_width - 1;
-            size_t top = j * char_height;
-            size_t bottom = top + char_height - 1;
-
-            for (size_t k = left, x = 0; k <= right; k++, x++)
-            {
-                for (size_t l = top, y = 0; l <= bottom; l++, y++)
-                {
-                    size_t img_pos = 4 * (k * image_height + l);
-                    size_t sub_pos = x * char_height + y;
-
-                    char_data[char_index][sub_pos] = font.Pixels[img_pos]; // Assume grayscale, only use r component
-                }
-            }
-
-            char_index++;
-        }
-    }
-
-    for (size_t n = 0; n < num_chars; n++)
-    {
-        if (is_all_zeroes(char_width, char_height, char_data[n]))
-        {
-            monochrome_image img;
-
-            img.width = char_width / 4;
-            img.height = char_height;
-
-            img.pixel_data.resize(img.width * img.height, 0);
-
-            mimgs.push_back(img);
-        }
-        else
-        {
-            size_t first_non_zeroes_column = 0;
-            size_t last_non_zeroes_column = char_width - 1;
-
-            for (size_t x = 0; x < char_width; x++)
-            {
-                bool all_zeroes = is_column_all_zeroes(x, char_width, char_height, char_data[n]);
-
-                if (false == all_zeroes)
-                {
-                    first_non_zeroes_column = x;
-                    break;
-                }
-            }
-
-            for (size_t x = first_non_zeroes_column + 1; x < char_width; x++)
-            {
-                bool all_zeroes = is_column_all_zeroes(x, char_width, char_height, char_data[n]);
-
-                if (false == all_zeroes)
-                {
-                    last_non_zeroes_column = x;
-                }
-            }
-
-            size_t cropped_width = last_non_zeroes_column - first_non_zeroes_column + 1;
-
-            monochrome_image img;
-            img.width = cropped_width;
-            img.height = char_height;
-            img.pixel_data.resize(img.width * img.height, 0);
-
-            for (size_t i = 0; i < num_chars_wide; i++)
-            {
-                for (size_t j = 0; j < num_chars_high; j++)
-                {
-                    const size_t left = first_non_zeroes_column;
-                    const size_t right = left + cropped_width - 1;
-                    const size_t top = 0;
-                    const size_t bottom = char_height - 1;
-
-                    for (size_t k = left, x = 0; k <= right; k++, x++)
-                    {
-                        for (size_t l = top, y = 0; l <= bottom; l++, y++)
-                        {
-                            const size_t img_pos = l * char_width + k;
-                            const size_t sub_pos = y * cropped_width + x;
-
-                            img.pixel_data[sub_pos] = char_data[n][img_pos];
-                        }
-                    }
-                }
-            }
-
-            mimgs.push_back(img);
-        }
-    }
-
+	log_system.add_string_to_contents("Welcome to Julia 4D 3.5");
 
     ssao_level = 1.0f;
     ssao_radius = 0.05f;
@@ -2355,8 +2137,6 @@ int main(int, char**)
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
-    cout << io.WantCaptureMouse << endl;
-
     // Setup Dear ImGui style
     //ImGui::StyleColorsDark();
     ImGui::StyleColorsClassic();
@@ -2411,9 +2191,9 @@ int main(int, char**)
 			oss.clear();
 			oss.str("");
 			oss << "Duration: " << elapsed.count() / 1000.0f << " seconds";
-			thread_mutex.lock();
+			//thread_mutex.lock();
 			log_system.add_string_to_contents(oss.str());
-			thread_mutex.unlock();
+			//thread_mutex.unlock();
 		}
         
         glfwPollEvents();
@@ -2423,14 +2203,7 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        //// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        //if (show_demo_window)
-        //    ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 		{
-			static float f = 0.0f;
-
 			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
 			if (generate_button)
@@ -2442,21 +2215,41 @@ int main(int, char**)
 			{
 				if (ImGui::Button("Cancel"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
 					generate_cancel_button_func();
-			}
+			} 
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+			ImGui::InputText("Equation:", eq_char, 100);
+
+
+
             ImGui::End();
         }
+
+		{
+			ImGui::SetNextWindowSize(ImVec2(500, 210));
+			ImGui::Begin("Log");
+
+			//thread_mutex.lock();
+	        for (size_t i = 0; i < log_system.get_contents_size(); i++)
+	        {
+	            string s;
+	            log_system.get_string_from_contents(i, s);
+				ImGui::Text(s.c_str());
+	        }
+				  //thread_mutex.unlock();
+
+			ImGui::End();
+		}
+
+
 
         // Rendering
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        
 
+ 
         glClearColor(1, 0.5f, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -2650,49 +2443,7 @@ int main(int, char**)
         glBindVertexArray(quad_vao);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-
-        if (0)//draw_console_checkbox->get_int_val() && log_system.get_contents_size() > 0)
-        {
-            size_t char_x_pos = 10;
-            size_t char_y_pos = 30;
-
-            RGB text_colour;
-            text_colour.r = 255;
-            text_colour.g = 255;
-            text_colour.b = 255;
-
-            vector<unsigned char> fbpixels(4 * static_cast<size_t>(display_w) * static_cast<size_t>(display_h));
-
-            glReadPixels(0, 0, display_w, display_h, GL_RGBA, GL_UNSIGNED_BYTE, &fbpixels[0]);
-
-            // Do anything you like here... for instance, use OpenCV for convolution
-
-            thread_mutex.lock();
-  /*          for (size_t i = 0; i < log_system.get_contents_size(); i++)
-            {
-                string s;
-                log_system.get_string_from_contents(i, s);
-                print_sentence(fbpixels, win_x, win_y, char_x_pos, char_y_pos, s, text_colour);
-                char_y_pos += 20;
-            }*/
-            thread_mutex.unlock();
-
-            glDrawPixels(display_w, display_h, GL_RGBA, GL_UNSIGNED_BYTE, &fbpixels[0]);
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-        
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }
@@ -2703,6 +2454,7 @@ int main(int, char**)
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);
+	glfwDestroyWindow(window2);
     glfwTerminate();
 
     return 0;
