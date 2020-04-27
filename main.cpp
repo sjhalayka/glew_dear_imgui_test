@@ -14,6 +14,8 @@
 #include "primitives.h"
 #include "marching_cubes.h"
 using namespace marching_cubes;
+#include "string_utilities.h"
+using namespace string_utilities;
 
 #include <thread>
 #include <mutex>
@@ -38,7 +40,24 @@ using namespace std;
 
 
 char eq_char[100] = "Z = Z*Z + C";
-
+bool use_pedestal_flag = true;
+bool use_gpu_flag = true;
+char pedestal_y_start_char[10] = "0.0";
+char pedestal_y_end_char[10] = "0.15";
+char c_x_char[10] = "0.2866";
+char c_y_char[10] = "0.5133";
+char c_z_char[10] = "0.46"; 
+char c_w_char[10] = "0.2467";
+char z_w_char[10] = "0.0";
+char max_iterations_char[10] = "8";
+char res_char[10] = "100";
+char infinity_char[10] = "4.0";
+char x_min_char[10] = "-1.5";
+char x_max_char[10] = "1.5";
+char y_min_char[10] = "-1.5";
+char y_max_char[10] = "1.5";
+char z_min_char[10] = "-1.5";
+char z_max_char[10] = "1.5";
 
 
 bool lmb_down = false;
@@ -1032,405 +1051,406 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	}
 
 	//p.randomize_c = randomize_c_checkbox->get_int_val();
-	//p.use_pedestal = use_pedestal_checkbox->get_int_val();
-
-	//string temp_string;
-
-	//temp_string = pedestal_y_start_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "pedestal y start is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.pedestal_y_start;
-	//}
-
-	//temp_string = pedestal_y_end_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "pedestal y end is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.pedestal_y_end;
-	//}
-
-	//if (p.pedestal_y_start < 0 || p.pedestal_y_start > 1)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "pedestal y start must be between 0 and 1";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-	//if (p.pedestal_y_end < 0 || p.pedestal_y_end > 1)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "pedestal y end must be between 0 and 1";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-	//if (p.pedestal_y_start >= p.pedestal_y_end)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "Y start must be smaller than y_end";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-
-
-
-	//temp_string = c_x_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "c.x  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.C_x;
-	//}
-
-	//temp_string = c_y_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "c.y  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.C_y;
-	//}
-
-	//temp_string = c_z_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "c.z  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.C_z;
-	//}
-
-	//temp_string = c_w_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "c.w  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.C_w;
-	//}
-
-	//temp_string = x_min_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "x min  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.x_min;
-	//}
-
-	//temp_string = y_min_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "y min  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.y_min;
-	//}
-
-	//temp_string = z_min_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "z min  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.z_min;
-	//}
-
-
-
-
-	//temp_string = x_max_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "x max  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.x_max;
-	//}
-
-	//temp_string = y_max_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "y max  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.y_max;
-	//}
-
-	//temp_string = z_max_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "z max  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.z_max;
-	//}
-
-	//if (p.x_min >= p.x_max)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "x min must be less than x max";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-	//if (p.y_min >= p.y_max)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "y min must be less than y max";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-	//if (p.z_min >= p.z_max)
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "z min must be less than z max";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-
-	//temp_string = z_w_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "z.w  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.Z_w;
-	//}
-
-
-	//temp_string = infinity_edittext->text;
-
-	//if (false == is_real_number(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "infinity  is not a real number";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.infinity;
-	//}
-
-
-	//temp_string = iterations_edittext->text;
-
-	//if (false == is_unsigned_int(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "max iterations is not an unsigned int";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.max_iterations;
-	//}
-
-	//temp_string = resolution_edittext->text;
-
-	//if (false == is_unsigned_int(temp_string))
-	//{
-	//	oss.clear();
-	//	oss.str("");
-	//	oss << "resolution is not an unsigned int";
-	//	thread_mutex.lock();
-	//	log_system.add_string_to_contents(oss.str());
-	//	thread_mutex.unlock();
-
-	//	return false;
-	//}
-	//else
-	//{
-	//	istringstream iss(temp_string);
-	//	iss >> p.resolution;
-
-	//	if (p.resolution < 3)
-	//	{
-	//		oss.clear();
-	//		oss.str("");
-	//		oss << "resolution must be greater than or equal to 3";
-	//		thread_mutex.lock();
-	//		log_system.add_string_to_contents(oss.str());
-	//		thread_mutex.unlock();
-
-	//		return false;
-	//	}
-	//}
+
+	p.use_pedestal = use_pedestal_flag;
+
+	string temp_string;
+
+	temp_string = pedestal_y_start_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "pedestal y start is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.pedestal_y_start;
+	}
+
+	temp_string = pedestal_y_end_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "pedestal y end is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.pedestal_y_end;
+	}
+
+	if (p.pedestal_y_start < 0 || p.pedestal_y_start > 1)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "pedestal y start must be between 0 and 1";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+	if (p.pedestal_y_end < 0 || p.pedestal_y_end > 1)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "pedestal y end must be between 0 and 1";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+	if (p.pedestal_y_start >= p.pedestal_y_end)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "Y start must be smaller than y_end";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+
+
+
+	temp_string = c_x_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "c.x  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.C_x;
+	}
+
+	temp_string = c_y_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "c.y  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.C_y;
+	}
+
+	temp_string = c_z_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "c.z  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.C_z;
+	}
+
+	temp_string = c_w_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "c.w  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.C_w;
+	}
+
+	temp_string = x_min_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "x min  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.x_min;
+	}
+
+	temp_string = y_min_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "y min  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.y_min;
+	}
+
+	temp_string = z_min_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "z min  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.z_min;
+	}
+
+
+
+
+	temp_string = x_max_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "x max  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.x_max;
+	}
+
+	temp_string = y_max_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "y max  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.y_max;
+	}
+
+	temp_string = z_max_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "z max  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.z_max;
+	}
+
+	if (p.x_min >= p.x_max)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "x min must be less than x max";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+	if (p.y_min >= p.y_max)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "y min must be less than y max";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+	if (p.z_min >= p.z_max)
+	{
+		oss.clear();
+		oss.str("");
+		oss << "z min must be less than z max";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+
+	temp_string = z_w_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "z.w  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.Z_w;
+	}
+
+
+	temp_string = infinity_char;
+
+	if (false == is_real_number(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "infinity  is not a real number";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.infinity;
+	}
+
+
+	temp_string = max_iterations_char;
+
+	if (false == is_unsigned_int(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "max iterations is not an unsigned int";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.max_iterations;
+	}
+
+	temp_string = res_char;
+
+	if (false == is_unsigned_int(temp_string))
+	{
+		oss.clear();
+		oss.str("");
+		oss << "resolution is not an unsigned int";
+		thread_mutex.lock();
+		log_system.add_string_to_contents(oss.str());
+		thread_mutex.unlock();
+
+		return false;
+	}
+	else
+	{
+		istringstream iss(temp_string);
+		iss >> p.resolution;
+
+		if (p.resolution < 3)
+		{
+			oss.clear();
+			oss.str("");
+			oss << "resolution must be greater than or equal to 3";
+			thread_mutex.lock();
+			log_system.add_string_to_contents(oss.str());
+			thread_mutex.unlock();
+
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -1555,7 +1575,7 @@ void generate_cancel_button_func(void)
         stop = false;
         vertex_data_refreshed = false;
 
-        if (1)//gpu_acceleration_checkbox->get_int_val())
+        if (use_gpu_flag)
         {
             GLint global_workgroup_count[2];
             glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &global_workgroup_count[0]);     
@@ -2200,7 +2220,9 @@ int main(int, char**)
         ImGui::NewFrame();
 
 		{
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+			ImGui::SetNextWindowSize(ImVec2(500,500));
+
+			ImGui::Begin("Controls");                          // Create a window called "Hello, world!" and append into it.
 
 			if (generate_button)
 			{
@@ -2214,8 +2236,27 @@ int main(int, char**)
 			} 
 
 
-			ImGui::InputText("Equation:", eq_char, 100);
+			ImGui::InputText("Equation", eq_char, 100);
+			ImGui::Checkbox("Use pedestal", &use_pedestal_flag);
+			ImGui::Checkbox("Use GPU", &use_gpu_flag);
+			ImGui::InputText("Pedestal y start", pedestal_y_start_char, 10);
+			ImGui::InputText("Pedestal y end", pedestal_y_end_char, 10);
+			ImGui::InputText("C.x", c_x_char, 10);
+			ImGui::InputText("C.y", c_y_char, 10);
+			ImGui::InputText("C.z", c_z_char, 10);
+			ImGui::InputText("C.w", c_w_char, 10);
+			ImGui::InputText("Z.w", z_w_char, 10);
 
+			ImGui::InputText("Max iterations", max_iterations_char, 10);
+			ImGui::InputText("Resolution", res_char, 10);
+			ImGui::InputText("Infinity", infinity_char, 10);
+
+			ImGui::InputText("x min", x_min_char, 10);
+			ImGui::InputText("y min", y_min_char, 10);
+			ImGui::InputText("z min", z_min_char, 10);
+			ImGui::InputText("x max", x_max_char, 10);
+			ImGui::InputText("y max", y_max_char, 10);
+			ImGui::InputText("z max", z_max_char, 10);
 
 
             ImGui::End();
