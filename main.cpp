@@ -661,6 +661,8 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 		oss.clear();
 		oss.str("");
 		oss << "Calculating triangles from xy-plane pair " << z << " of " << p.resolution - 1;
+
+	//	cout << oss.str() << endl;
 		//thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
 		//thread_mutex.unlock();
@@ -735,15 +737,12 @@ GLFWwindow* window2;
 
 void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_parser eqparser, quaternion C, vector<triangle>& triangles, vector<vertex_3_with_normal>& vertices_with_face_normals)
 {
-	cout << "entering gpu thread" << endl;
-
 	thread_is_running = true;
 
 	triangles.clear();
 	vertices_with_face_normals.clear();
 
 
-	cout << "Setting context" << endl;
 
 	glfwMakeContextCurrent(window2);
 
@@ -751,11 +750,10 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 	GLuint tex_output = 0;
 	GLuint tex_input = 0;
 
-	cout << "linking and compiling" << endl;
 
 	compile_and_link_compute_shader("julia.cs.glsl", compute_shader_program);
 
-	cout << "Generating textures" << endl;
+
 
 	glGenTextures(1, &tex_output);
 	glActiveTexture(GL_TEXTURE0);
@@ -779,7 +777,7 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 
 	// Set up quaternion Julia set parameters
 
-	cout << "Calculating" << endl;
+	
 
 
 	// Set up grid parameters
@@ -2028,7 +2026,6 @@ int main(int, char**)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-	cout << "Crreating window" << endl;
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	window2 = glfwCreateWindow(1, 1, "Julia 4D 3 Multithreaded", NULL, NULL);
 
