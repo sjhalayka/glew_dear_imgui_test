@@ -205,9 +205,9 @@ bool compile_and_link_compute_shader(const char* const file_name, GLuint& progra
 		oss.clear();
 		oss.str("");
 		oss << "Could not open compute shader source file " << file_name;
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 
 		return false;
 	}
@@ -296,9 +296,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Triangle count: " << triangles.size();
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	if (0 == triangles.size())
 		return false;
@@ -326,9 +326,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Generating normal/vertex/attribute buffer";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	// Enough bytes for twelve 4-byte floats plus one 2-byte integer, per triangle.
 	const size_t data_size = (12 * sizeof(float) + sizeof(short unsigned int)) * num_triangles;
@@ -378,9 +378,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Writing " << data_size / 1048576.0 << " MB of data to STL file: " << file_name;
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	if (false == stop)
 		out.write(reinterpret_cast<const char*>(&buffer[0]), data_size);
@@ -388,9 +388,9 @@ bool write_triangles_to_binary_stereo_lithography_file(const char* const file_na
 	oss.clear();
 	oss.str("");
 	oss << "Done writing out.stl";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	out.close();
 
@@ -413,9 +413,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Welding vertices";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	// Insert unique vertices into set.
 	set<vertex_3_with_index> vertex_set;
@@ -433,17 +433,17 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Vertices: " << vertex_set.size();
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 
 	oss.clear();
 	oss.str("");
 	oss << "Generating vertex indices";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 
 	// Add indices to the vertices.
@@ -471,9 +471,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Assigning vertex indices to triangles";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 
 	// Find the three vertices for each triangle, by index.
@@ -499,9 +499,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Calculating normals";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	vertices_with_face_normals.resize(v.size());
 
@@ -530,9 +530,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Generating final index/vertex data";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	for (size_t i5 = 0; i5 < v.size(); i5++)
 	{
@@ -556,9 +556,9 @@ void get_vertices_with_face_normals_from_triangles(vector<vertex_3_with_normal>&
 	oss.clear();
 	oss.str("");
 	oss << "Done";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 }
 
 
@@ -588,9 +588,9 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 		oss.clear();
 		oss.str("");
 		oss << "Equation error: " << error_string;
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 		thread_is_running = false;
 		return;
 	}
@@ -662,10 +662,9 @@ void thread_func_cpu(fractal_set_parameters p, vector<triangle>& triangles, vect
 		oss.str("");
 		oss << "Calculating triangles from xy-plane pair " << z << " of " << p.resolution - 1;
 
-	//	cout << oss.str() << endl;
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 
 		for (size_t x = 0; x < p.resolution; x++, Z.x += step_size_x)
 		{
@@ -909,9 +908,9 @@ void thread_func_gpu(fractal_set_parameters p, quaternion_julia_set_equation_par
 			oss.clear();
 			oss.str("");
 			oss << "Calculating triangles from xy-plane pair " << z << " of " << p.resolution - 1;
-			//thread_mutex.lock();
+			thread_mutex.lock();
 			log_system.add_string_to_contents(oss.str());
-			//thread_mutex.unlock();
+			thread_mutex.unlock();
 
 			// Calculate triangles for the xy-planes corresponding to z - 1 and z by marching cubes.
 			tesselate_adjacent_xy_plane_pair(stop,
@@ -1025,9 +1024,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 		oss.clear();
 		oss.str("");
 		oss << "blank equation text";
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 
 		return false;
 	}
@@ -1044,9 +1043,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y start is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1063,9 +1062,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y end is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1080,9 +1079,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y start must be between 0 and 1";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1092,9 +1091,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "pedestal y end must be between 0 and 1";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1104,9 +1103,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "Y start must be smaller than y_end";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1121,9 +1120,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.x  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1140,9 +1139,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.y  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1159,9 +1158,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.z  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1178,9 +1177,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "c.w  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1197,9 +1196,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x min  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1216,9 +1215,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y min  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1235,9 +1234,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z min  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1257,9 +1256,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x max  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1276,9 +1275,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y max  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1295,9 +1294,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z max  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1312,9 +1311,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "x min must be less than x max";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1324,9 +1323,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "y min must be less than y max";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1336,9 +1335,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z min must be less than z max";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1350,9 +1349,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "z.w  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1370,9 +1369,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "infinity  is not a real number";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1390,9 +1389,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "max iterations is not an unsigned int";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1409,9 +1408,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//	oss.clear();
 	//	oss.str("");
 	//	oss << "resolution is not an unsigned int";
-	//	//thread_mutex.lock();
+	//	thread_mutex.lock();
 	//	log_system.add_string_to_contents(oss.str());
-	//	//thread_mutex.unlock();
+	//	thread_mutex.unlock();
 
 	//	return false;
 	//}
@@ -1425,9 +1424,9 @@ bool obtain_control_contents(fractal_set_parameters& p)
 	//		oss.clear();
 	//		oss.str("");
 	//		oss << "resolution must be greater than or equal to 3";
-	//		//thread_mutex.lock();
+	//		thread_mutex.lock();
 	//		log_system.add_string_to_contents(oss.str());
-	//		//thread_mutex.unlock();
+	//		thread_mutex.unlock();
 
 	//		return false;
 	//	}
@@ -1515,9 +1514,9 @@ void generate_cancel_button_func(void)
         oss.clear();
         oss.str("");
         oss << "Aborting";
-        //thread_mutex.lock();
+        thread_mutex.lock();
         log_system.add_string_to_contents(oss.str());
-        //thread_mutex.unlock();
+        thread_mutex.unlock();
 
         stop = true;
         vertex_data_refreshed = false;
@@ -1546,9 +1545,9 @@ void generate_cancel_button_func(void)
             oss.clear();
             oss.str("");
             oss << "Aborting";
-            //thread_mutex.lock();
+            thread_mutex.lock();
             log_system.add_string_to_contents(oss.str());
-            //thread_mutex.unlock();
+            thread_mutex.unlock();
 
             return;
         }
@@ -1568,9 +1567,9 @@ void generate_cancel_button_func(void)
                 oss.clear();
                 oss.str("");
                 oss << "Texture width " << p.resolution << " is larger than max " << global_workgroup_count[0];
-                //thread_mutex.lock();
+                thread_mutex.lock();
                 log_system.add_string_to_contents(oss.str());
-                //thread_mutex.unlock();
+                thread_mutex.unlock();
 
                 return;
             }
@@ -1580,9 +1579,9 @@ void generate_cancel_button_func(void)
                 oss.clear();
                 oss.str("");
                 oss << "Texture height " << p.resolution << " is larger than max " << global_workgroup_count[1];
-                //thread_mutex.lock();
+                thread_mutex.lock();
                 log_system.add_string_to_contents(oss.str());
-				//thread_mutex.unlock();
+				thread_mutex.unlock();
 
                 return;
             }
@@ -1596,9 +1595,9 @@ void generate_cancel_button_func(void)
                 oss.clear();
                 oss.str("");
                 oss << "Equation error: " << error_string;
-                //thread_mutex.lock();
+                thread_mutex.lock();
                 log_system.add_string_to_contents(oss.str());
-                //thread_mutex.unlock();
+                thread_mutex.unlock();
 
                 return;
             }
@@ -1965,9 +1964,9 @@ void refresh_vertex_data(void)
 	oss.clear();
 	oss.str("");
 	oss << "Refreshing vertex data";
-	//thread_mutex.lock();
+	thread_mutex.lock();
 	log_system.add_string_to_contents(oss.str());
-	//thread_mutex.unlock();
+	thread_mutex.unlock();
 
 	//int do_rainbow = rainbow_colouring_checkbox->get_int_val();
 
@@ -1981,18 +1980,18 @@ void refresh_vertex_data(void)
 		oss.clear();
 		oss.str("");
 		oss << "Cancelled refreshing vertex data";
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 	}
 	else
 	{
 		oss.clear();
 		oss.str("");
 		oss << "Done refreshing vertex data";
-		//thread_mutex.lock();
+		thread_mutex.lock();
 		log_system.add_string_to_contents(oss.str());
-		//thread_mutex.unlock();
+		thread_mutex.unlock();
 	}
 }
 
@@ -2188,9 +2187,9 @@ int main(int, char**)
 			oss.clear();
 			oss.str("");
 			oss << "Duration: " << elapsed.count() / 1000.0f << " seconds";
-			//thread_mutex.lock();
+			thread_mutex.lock();
 			log_system.add_string_to_contents(oss.str());
-			//thread_mutex.unlock();
+			thread_mutex.unlock();
 		}
         
         glfwPollEvents();
@@ -2226,14 +2225,14 @@ int main(int, char**)
 			ImGui::SetNextWindowSize(ImVec2(500, 210));
 			ImGui::Begin("Log");
 
-			//thread_mutex.lock();
+			thread_mutex.lock();
 	        for (size_t i = 0; i < log_system.get_contents_size(); i++)
 	        {
 	            string s;
 	            log_system.get_string_from_contents(i, s);
 				ImGui::Text(s.c_str());
 	        }
-				  //thread_mutex.unlock();
+			thread_mutex.unlock();
 
 			ImGui::End();
 		}
