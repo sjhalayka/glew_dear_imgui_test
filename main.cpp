@@ -23,6 +23,7 @@ using namespace string_utilities;
 #include <vector>
 #include <chrono>
 #include <set>
+#include <complex>
 using namespace std;
 
 // Automatically link in the GLFW and GLEW libraries if compiling on MSVC++
@@ -37,7 +38,7 @@ using namespace std;
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-
+GLFWwindow* main_window;
 
 char eq_char[100] = "Z = Z*Z + C";
 bool use_pedestal_flag = true;
@@ -108,7 +109,7 @@ public:
 vertex_fragment_shader render;
 vertex_fragment_shader ssao;
 vertex_fragment_shader flat;
-
+vertex_fragment_shader ortho;
 
 
 struct
@@ -134,6 +135,12 @@ struct
         GLint           proj_matrix;
         GLint			flat_colour;
     } flat;
+
+	struct
+	{
+		GLint			tex;
+	} ortho;
+
 } uniforms;
 
 bool  show_shading;
@@ -191,6 +198,12 @@ bool load_shaders()
         return false;
     }
 
+	if (false == ortho.init("ortho.vs.glsl", "ortho.fs.glsl"))
+	{
+		cout << "Could not load ortho shader" << endl;
+		return false;
+	}
+
     uniforms.render.mv_matrix = glGetUniformLocation(render.get_program(), "mv_matrix");
     uniforms.render.proj_matrix = glGetUniformLocation(render.get_program(), "proj_matrix");
     uniforms.render.shading_level = glGetUniformLocation(render.get_program(), "shading_level");
@@ -206,9 +219,359 @@ bool load_shaders()
     uniforms.flat.proj_matrix = glGetUniformLocation(flat.get_program(), "proj_matrix");
     uniforms.flat.flat_colour = glGetUniformLocation(flat.get_program(), "flat_colour");
 
+	uniforms.ortho.tex = glGetUniformLocation(ortho.get_program(), "tex");
+
     return true;
 }
 
+
+// http://www.songho.ca/opengl/gl_transform.html
+
+complex<float> get_window_coords_from_ndc_coords(size_t viewport_width, size_t viewport_height, complex<float>& src_coords)
+{
+	float x_w = viewport_width / 2.0f * src_coords.real() + viewport_width / 2.0f;
+	float y_w = viewport_height / 2.0f * src_coords.imag() + viewport_height / 2.0f;
+
+	return complex<float>(x_w, y_w);
+}
+
+complex<float> get_ndc_coords_from_window_coords(size_t viewport_width, size_t viewport_height, complex<float>& src_coords)
+{
+	float x_ndc = (2.0f * src_coords.real() / viewport_width) - 1.0f;
+	float y_ndc = (2.0f * src_coords.imag() / viewport_height) - 1.0f;
+
+	return complex<float>(x_ndc, y_ndc);
+}
+
+class font_character_image
+{
+public:
+	size_t width;
+	size_t height;
+	vector<unsigned char> monochrome_data;
+
+	GLuint tex_handle = 0, vao = 0, vbo = 0, ibo = 0;
+
+	void opengl_init(RGB text_colour)
+	{
+		// Clean up, in case this opengl_init() function is called more than once
+		cleanup();
+
+		glGenVertexArrays(1, &vao);
+		glGenBuffers(1, &vbo);
+		glGenBuffers(1, &ibo);
+
+		vector<unsigned char> rgba_data(4 * width * height, 0);
+
+		for (size_t i = 0; i < width; i++)
+		{
+			for (size_t j = 0; j < height; j++)
+			{
+				size_t mono_index = j * width + i;
+				size_t rgba_index = 4 * mono_index;
+
+				rgba_data[rgba_index + 0] = text_colour.r;
+				rgba_data[rgba_index + 1] = text_colour.g;
+				rgba_data[rgba_index + 2] = text_colour.b;
+				rgba_data[rgba_index + 3] = monochrome_data[mono_index];
+			}
+		}
+
+		glGenTextures(1, &tex_handle);
+		glBindTexture(GL_TEXTURE_2D, tex_handle);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, &rgba_data[0]);
+	}
+
+	void draw(GLuint shader_program, size_t x, size_t y, size_t win_width, size_t win_height)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		complex<float> v0w(static_cast<float>(x), static_cast<float>(y));
+		complex<float> v1w(static_cast<float>(x), static_cast<float>(y + this->height));
+		complex<float> v2w(static_cast<float>(x + this->width), static_cast<float>(y + this->height));
+		complex<float> v3w(static_cast<float>(x + this->width), static_cast<float>(y));
+
+		complex<float> v0ndc = get_ndc_coords_from_window_coords(win_width, win_height, v0w);
+		complex<float> v1ndc = get_ndc_coords_from_window_coords(win_width, win_height, v1w);
+		complex<float> v2ndc = get_ndc_coords_from_window_coords(win_width, win_height, v2w);
+		complex<float> v3ndc = get_ndc_coords_from_window_coords(win_width, win_height, v3w);
+
+		// data for a fullscreen quad (this time with texture coords)
+		const GLfloat vertexData[] = {
+			//	       X     Y     Z					  U     V     
+				  v0ndc.real(), v0ndc.imag(), 0,      0, 1, // vertex 0
+				  v1ndc.real(), v1ndc.imag(), 0,      0, 0, // vertex 1
+				  v2ndc.real(), v2ndc.imag(), 0,      1, 0, // vertex 2
+				  v3ndc.real(), v3ndc.imag(), 0,      1, 1, // vertex 3
+		}; // 4 vertices with 5 components (floats) each
+
+
+
+		// https://raw.githubusercontent.com/progschj/OpenGL-Examples/master/03texture.cpp
+
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+
+
+		// fill with data
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 4 * 5, vertexData, GL_STATIC_DRAW);
+
+
+		// set up generic attrib pointers
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (char*)0 + 0 * sizeof(GLfloat));
+
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (char*)0 + 3 * sizeof(GLfloat));
+
+		// generate and bind the index buffer object
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
+		static const GLuint indexData[] = {
+			3,1,0, // first triangle
+			2,1,3, // second triangle
+		};
+
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 2 * 3, indexData, GL_STATIC_DRAW);
+
+		glBindVertexArray(0);
+
+		glUseProgram(ortho.get_program());
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex_handle);
+
+		glUniform1i(uniforms.ortho.tex, 0);
+
+		glBindVertexArray(vao);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	}
+
+	void cleanup(void)
+	{
+		if (glIsTexture(tex_handle))
+			glDeleteTextures(1, &tex_handle);
+
+		if (glIsVertexArray(vao))
+			glDeleteVertexArrays(1, &vao);
+
+		if (glIsBuffer(vbo))
+			glDeleteBuffers(1, &vbo);
+
+		if (glIsBuffer(ibo))
+			glDeleteBuffers(1, &ibo);
+	}
+
+	~font_character_image(void)
+	{
+		cleanup();
+	}
+};
+
+vector<font_character_image> mimgs;
+
+const size_t num_chars = 256;
+const size_t image_width = 256;
+const size_t image_height = 256;
+const size_t char_width = 16;
+const size_t char_height = 16;
+const size_t num_chars_wide = image_width / char_width;
+const size_t num_chars_high = image_height / char_height;
+
+
+
+
+
+void print_char(const size_t fb_width, const size_t fb_height, const size_t char_x_pos, const size_t char_y_pos, const unsigned char c)
+{
+	mimgs[c].draw(ortho.get_program(), char_x_pos, char_y_pos, fb_width, fb_height);
+}
+
+void print_sentence(const size_t fb_width, const size_t fb_height, size_t char_x_pos, size_t char_y_pos, const string s)
+{
+	char_y_pos = fb_height - char_y_pos;
+
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		print_char(fb_width, fb_height, char_x_pos, char_y_pos, s[i]);
+
+		size_t char_width = mimgs[s[i]].width;
+
+		char_x_pos += char_width + 2;
+	}
+}
+
+
+
+
+
+bool is_all_zeroes(size_t width, size_t height, const vector<unsigned char>& pixel_data)
+{
+	bool all_zeroes = true;
+
+	for (size_t i = 0; i < width * height; i++)
+	{
+		if (pixel_data[i] != 0)
+		{
+			all_zeroes = false;
+			break;
+		}
+	}
+
+	return all_zeroes;
+}
+
+bool is_column_all_zeroes(size_t column, size_t width, size_t height, const vector<unsigned char>& pixel_data)
+{
+	bool all_zeroes = true;
+
+	for (size_t y = 0; y < height; y++)
+	{
+		size_t index = y * width + column;
+
+		if (pixel_data[index] != 0)
+		{
+			all_zeroes = false;
+			break;
+		}
+	}
+
+	return all_zeroes;
+}
+
+
+
+bool init_character_set(void)
+{
+	BMP font;
+
+	if (false == font.load("font.bmp"))
+	{
+		cout << "could not load font.bmp" << endl;
+		return false;
+	}
+
+	size_t char_index = 0;
+
+	vector< vector<GLubyte> > char_data;
+	vector<unsigned char> char_template(char_width * char_height);
+	char_data.resize(num_chars, char_template);
+
+	for (size_t i = 0; i < num_chars_wide; i++)
+	{
+		for (size_t j = 0; j < num_chars_high; j++)
+		{
+			size_t left = i * char_width;
+			size_t right = left + char_width - 1;
+			size_t top = j * char_height;
+			size_t bottom = top + char_height - 1;
+
+			for (size_t k = left, x = 0; k <= right; k++, x++)
+			{
+				for (size_t l = top, y = 0; l <= bottom; l++, y++)
+				{
+					size_t img_pos = 4 * (k * image_height + l);
+					size_t sub_pos = x * char_height + y;
+
+					char_data[char_index][sub_pos] = font.Pixels[img_pos]; // Assume grayscale, only use r component
+				}
+			}
+
+			char_index++;
+		}
+	}
+
+	for (size_t n = 0; n < num_chars; n++)
+	{
+		if (is_all_zeroes(char_width, char_height, char_data[n]))
+		{
+			font_character_image img;
+
+			img.width = char_width / 4;
+			img.height = char_height;
+
+			img.monochrome_data.resize(img.width * img.height, 0);
+
+			mimgs.push_back(img);
+		}
+		else
+		{
+			size_t first_non_zeroes_column = 0;
+			size_t last_non_zeroes_column = char_width - 1;
+
+			for (size_t x = 0; x < char_width; x++)
+			{
+				bool all_zeroes = is_column_all_zeroes(x, char_width, char_height, char_data[n]);
+
+				if (false == all_zeroes)
+				{
+					first_non_zeroes_column = x;
+					break;
+				}
+			}
+
+			for (size_t x = first_non_zeroes_column + 1; x < char_width; x++)
+			{
+				bool all_zeroes = is_column_all_zeroes(x, char_width, char_height, char_data[n]);
+
+				if (false == all_zeroes)
+				{
+					last_non_zeroes_column = x;
+				}
+			}
+
+			size_t cropped_width = last_non_zeroes_column - first_non_zeroes_column + 1;
+
+			font_character_image img;
+			img.width = cropped_width;
+			img.height = char_height;
+			img.monochrome_data.resize(img.width * img.height, 0);
+
+			for (size_t i = 0; i < num_chars_wide; i++)
+			{
+				for (size_t j = 0; j < num_chars_high; j++)
+				{
+					const size_t left = first_non_zeroes_column;
+					const size_t right = left + cropped_width - 1;
+					const size_t top = 0;
+					const size_t bottom = char_height - 1;
+
+					for (size_t k = left, x = 0; k <= right; k++, x++)
+					{
+						for (size_t l = top, y = 0; l <= bottom; l++, y++)
+						{
+							const size_t img_pos = l * char_width + k;
+							const size_t sub_pos = y * cropped_width + x;
+
+							img.monochrome_data[sub_pos] = char_data[n][img_pos];
+						}
+					}
+				}
+			}
+
+			mimgs.push_back(img);
+		}
+	}
+
+	RGB text_colour;
+	text_colour.r = 255;
+	text_colour.g = 255;
+	text_colour.b = 255;
+
+	for (size_t i = 0; i < mimgs.size(); i++)
+		mimgs[i].opengl_init(text_colour);
+
+	return true;
+}
 
 
 
@@ -2039,10 +2402,11 @@ int main(int, char**)
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Julia 4D 3 Multithreaded", NULL, NULL);
-    if (window == NULL)
+    main_window = glfwCreateWindow(mode->width, mode->height, "Julia 4D 3 Multithreaded", NULL, NULL);
+    if (main_window == NULL)
         return 1;
-    glfwMakeContextCurrent(window);
+
+    glfwMakeContextCurrent(main_window);
     glfwSwapInterval(1); // Enable vsync
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -2061,7 +2425,12 @@ int main(int, char**)
         return 1;
     }
 
-	log_system.add_string_to_contents("Welcome to Julia 4D 3.5");
+	if (false == init_character_set())
+	{
+		return 1;
+	}
+
+	log_system.add_string_to_contents("Welcome to Julia 4D 3 Multithreaded");
 
     ssao_level = 1.0f;
     ssao_radius = 0.05f;
@@ -2150,35 +2519,17 @@ int main(int, char**)
 
 
 
-    glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(main_window, cursor_position_callback);
+    glfwSetMouseButtonCallback(main_window, mouse_button_callback);
 
     // Setup Dear ImGui style
-    //ImGui::StyleColorsDark();
-    ImGui::StyleColorsClassic();
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(main_window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'docs/FONTS.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
-
-    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 
@@ -2186,7 +2537,7 @@ int main(int, char**)
 
 
     // Main loop
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(main_window))
     {
 		if (false == thread_is_running && false == generate_button)
 		{
@@ -2220,7 +2571,7 @@ int main(int, char**)
         ImGui::NewFrame();
 
 		{
-			ImGui::SetNextWindowSize(ImVec2(500,500));
+			ImGui::SetNextWindowSize(ImVec2(400,500));
 
 			ImGui::Begin("Controls");                          // Create a window called "Hello, world!" and append into it.
 
@@ -2262,28 +2613,14 @@ int main(int, char**)
             ImGui::End();
         }
 
-		{
-			ImGui::SetNextWindowSize(ImVec2(500, 210));
-			ImGui::Begin("Log");
 
-			thread_mutex.lock();
-	        for (size_t i = 0; i < log_system.get_contents_size(); i++)
-	        {
-	            string s;
-	            log_system.get_string_from_contents(i, s);
-				ImGui::Text(s.c_str());
-	        }
-			thread_mutex.unlock();
-
-			ImGui::End();
-		}
 
 
 
         // Rendering
         ImGui::Render();
         int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glfwGetFramebufferSize(main_window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
 
  
@@ -2480,9 +2817,37 @@ int main(int, char**)
         glBindVertexArray(quad_vao);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+
+		if (log_system.get_contents_size() > 0)
+		{
+			glUseProgram(ortho.get_program());
+
+			size_t char_x_pos = 10;
+			size_t char_y_pos = 30;
+
+
+
+			for (size_t i = 0; i < log_system.get_contents_size(); i++)
+			{
+				int win_x, win_y;
+				glfwGetFramebufferSize(main_window, &win_x, &win_y);
+
+				string s;
+
+				thread_mutex.lock();
+				log_system.get_string_from_contents(i, s);
+				thread_mutex.unlock();
+
+				print_sentence(win_x, win_y, char_x_pos, char_y_pos, s);
+				char_y_pos += 20;
+			}
+		}
+
+
+
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(main_window);
     }
 
     // Cleanup
@@ -2490,7 +2855,7 @@ int main(int, char**)
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(main_window);
 	glfwDestroyWindow(window2);
     glfwTerminate();
 

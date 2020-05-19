@@ -17,7 +17,7 @@ protected:
 public:
 	logging_system(void)
 	{
-		max_size = 10;
+		max_size = 30;
 	}
 
 	size_t get_max_size(void)
